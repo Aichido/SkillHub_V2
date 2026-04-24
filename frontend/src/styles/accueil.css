@@ -510,7 +510,6 @@ header {
 }
 
 .valeurs {
-    width: 100%;
     min-height: 400px;
     padding: 2rem;
     font-family: "Roboto", sans-serif;
@@ -567,7 +566,6 @@ header {
 
 /* temoignages */
 .temoignages {
-    width: 100%;
     min-height: 400px;
     padding: 2rem 1rem;
     background-color: rgba(228, 234, 255, 0.5);

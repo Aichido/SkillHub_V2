@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { recupererUtilisateur, supprimerSession } from "../services/auth";
 import { deconnecter } from "../services/authApi";
@@ -75,20 +75,6 @@ function Formations() {
 
   const utilisateur = recupererUtilisateur();
 
-  const profil = useMemo(() => {
-    if (!utilisateur) {
-      return {
-        libelle: "Se connecter",
-        href: "/connexion",
-      };
-    }
-
-    return {
-      libelle: utilisateur.nom || "Profil",
-      href: utilisateur.role === "apprenant" ? "/dashboard/apprenant" : "/dashboard/formateur",
-    };
-  }, [utilisateur]);
-
   useEffect(() => {
     document.title = "Formations";
   }, []);
@@ -139,12 +125,12 @@ function Formations() {
   }, []);
 
   useEffect(() => {
-    const temporisation = window.setTimeout(() => {
+    const temporisation = globalThis.setTimeout(() => {
       const query = recherche.trim().toLowerCase();
-      const minH = Number.isNaN(parseFloat(minHeures)) ? 0 : parseFloat(minHeures);
-      const maxH = Number.isNaN(parseFloat(maxHeures)) ? Number.POSITIVE_INFINITY : parseFloat(maxHeures);
-      const minP = Number.isNaN(parseFloat(minPrix)) ? 0 : parseFloat(minPrix);
-      const maxP = Number.isNaN(parseFloat(maxPrix)) ? Number.POSITIVE_INFINITY : parseFloat(maxPrix);
+      const minH = Number.isNaN(Number.parseFloat(minHeures)) ? 0 : Number.parseFloat(minHeures);
+      const maxH = Number.isNaN(Number.parseFloat(maxHeures)) ? Number.POSITIVE_INFINITY : Number.parseFloat(maxHeures);
+      const minP = Number.isNaN(Number.parseFloat(minPrix)) ? 0 : Number.parseFloat(minPrix);
+      const maxP = Number.isNaN(Number.parseFloat(maxPrix)) ? Number.POSITIVE_INFINITY : Number.parseFloat(maxPrix);
 
       const resultat = formations.filter((formation) => {
         const matchQuery =
@@ -167,7 +153,7 @@ function Formations() {
     }, 180);
 
     return () => {
-      window.clearTimeout(temporisation);
+      globalThis.clearTimeout(temporisation);
     };
   }, [recherche, categorie, niveau, minHeures, maxHeures, minPrix, maxPrix, formations]);
 
@@ -199,7 +185,7 @@ function Formations() {
   };
 
   const gererDeconnexion = async () => {
-    try { await deconnecter(); } catch {}
+    try { await deconnecter(); } catch { /* ignore */ }
     finally { supprimerSession(); navigate("/connexion", { replace: true }); }
   };
 
@@ -365,7 +351,7 @@ function Formations() {
       </main>
 
       {modalOuverte && (
-        <div id="modalOverlay" className="overlay" onClick={fermerModal}></div>
+        <div id="modalOverlay" className="overlay" aria-hidden="true" onClick={fermerModal} onKeyDown={fermerModal}></div>
       )}
       {modalOuverte && (
         <div id="modal" className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-formations" ref={modalRef}>

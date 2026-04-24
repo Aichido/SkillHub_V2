@@ -1,18 +1,61 @@
 services:
   # ---------------------------------
-  # FRONTEND (React / Vue / Node.js)
+  # BASE DE DONNÉES (MySQL)
   # ---------------------------------
-  frontend:
-    image: node:20-alpine
-    container_name: skillhub_frontend
-    working_dir: /app
-    volumes:
-      - ./frontend:/app
+  db:
+    image: mysql:8.0
+    container_name: skillhub_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_dev}
+      MYSQL_USER: ${MYSQL_USER:-skillhub_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-skillhub_pass}
     ports:
-      - "5173:5173"
-    command: sh -c "npm install && npm run dev -- --host"
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
     networks:
       - skillhub_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+
+  # ---------------------------------
+  # FRONTEND (React / Vite)
+  # ---------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: skillhub_frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      auth_api:
+        condition: service_healthy
+      auth_java:
+        condition: service_started
+      catalog_api:
+        condition: service_healthy
+      inscription_api:
+        condition: service_healthy
+    networks:
+      - skillhub_network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
 
   # ---------------------------------
   # MICROSERVICE 1 : AUTH
@@ -28,10 +71,53 @@ services:
     ports:
       - "8001:8000"
     command: php artisan serve --host=0.0.0.0 --port=8000
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: skillhub_auth
+      DB_USERNAME: ${MYSQL_USER:-skillhub_user}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-skillhub_pass}
+      JWT_SECRET: ${JWT_SECRET:-secret_dev}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - skillhub_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "php", "artisan", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
+  # ---------------------------------
+  # MICROSERVICE 4 : AUTH JAVA
+  # ---------------------------------
+  auth_java:
+    build:
+      context: ./services/auth-spring-boot
+      dockerfile: Dockerfile
+    container_name: skillhub_auth_java
+    ports:
+      - "8081:8081"
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-secret_dev}
+      MASTER_KEY: ${MASTER_KEY:-change_me_master_key_32_bytes_min}
+      APP_LARAVEL_AUTH_URL: ${APP_LARAVEL_AUTH_URL:-http://auth_api:8000/api}
+    depends_on:
+      auth_api:
+        condition: service_healthy
+    networks:
+      - skillhub_network
+    restart: unless-stopped
 
   # ---------------------------------
   # MICROSERVICE 2 : CATALOG
@@ -47,10 +133,33 @@ services:
     ports:
       - "8002:8000"
     command: php artisan serve --host=0.0.0.0 --port=8000
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: skillhub_catalog
+      DB_USERNAME: ${MYSQL_USER:-skillhub_user}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-skillhub_pass}
+      JWT_SECRET: ${JWT_SECRET:-secret_dev}
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL:-http://auth_api:8000}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - skillhub_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "php", "artisan", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
 
   # ---------------------------------
   # MICROSERVICE 3 : INSCRIPTION
@@ -66,31 +175,61 @@ services:
     ports:
       - "8003:8000"
     command: php artisan serve --host=0.0.0.0 --port=8000
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: skillhub_enrollment
+      DB_USERNAME: ${MYSQL_USER:-skillhub_user}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-skillhub_pass}
+      JWT_SECRET: ${JWT_SECRET:-secret_dev}
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL:-http://auth_api:8000}
+      CATALOG_SERVICE_URL: ${CATALOG_SERVICE_URL:-http://catalog_api:8000}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - skillhub_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "php", "artisan", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
 
   # ---------------------------------
-  # BASE DE DONNÉES (MySQL)
+  # MONGODB (logs activité)
   # ---------------------------------
-  db:
-    image: mysql:8.0
-    container_name: skillhub_db
+  mongodb:
+    image: mongo:7.0
+    container_name: skillhub_mongodb
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_USER: skillhub_user
-      MYSQL_PASSWORD: root
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-skillhub_logs}
     ports:
-      - "3306:3306"
+      - "27017:27017"
     volumes:
-      # Sauvegarde persistante des données
-      - db_data:/var/lib/mysql
-      # Script pour créer les 3 bases de données automatiquement
-      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+      - mongo_data:/data/db
     networks:
       - skillhub_network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
 
 # ---------------------------------
 # RÉSEAUX ET VOLUMES
@@ -101,3 +240,4 @@ networks:
 
 volumes:
   db_data:
+  mongo_data:

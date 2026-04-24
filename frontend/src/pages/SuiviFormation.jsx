@@ -54,8 +54,8 @@ function SuiviFormation() {
           <p>{formation.description}</p>
 
           <h2>Progression</h2>
-          <div className="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={formation.progression ?? 0}>
-            <div className="progress-bar" style={progressionStyle}></div>
+          <div className="progress-track">
+            <progress className="progress-bar" value={formation.progression ?? 0} max="100" aria-label="Progression de la formation" style={progressionStyle}></progress>
           </div>
           <p>{formation.progression ?? 0}% terminé</p>
 

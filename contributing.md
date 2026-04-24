@@ -19,7 +19,7 @@ Afin de garantir un code lisible et d'assurer une bonne traçabilité de nos con
 **Aucun commit direct n'y est autorisé**.
 * `dev` : Branche d'intégration de travail par défaut qui accumule toutes les fonctionnalités validées.
 * `feature/<nom>` : Branche utilisée pour développer une nouvelle fonctionnalité ou réaliser une tâche spécifique. Tout développement doit passer par ce type de branche.
-* `hotfix/<nom>` : Branche dédiée aux correctifs urgents. [cite_start]Il est recommandé de fusionner ces correctifs vers `main` et `dev`.
+* `hotfix/<nom>` : Branche dédiée aux correctifs urgents. Il est recommandé de fusionner ces correctifs vers `main` et `dev`.
 
 ## 3. Format des Commits (Conventional Commits)
 
@@ -28,9 +28,9 @@ Le dépôt Git servant de preuve de notre contribution individuelle, nous exigeo
 * `feat` : Pour l'ajout d'une nouvelle fonctionnalité.
 * `fix` : Pour la correction d'un bug.
 * `docker` : Pour l'ajout ou la modification des fichiers de conteneurisation.
-* [cite_start]`ci` : Pour toute modification apportée au pipeline d'intégration et de déploiement continu (CI/CD).
-* [cite_start]`docs` : Pour la mise à jour ou l'ajout de documentation.
-* [cite_start]`chore` : Pour les tâches de maintenance.
+* `ci` : Pour toute modification apportée au pipeline d'intégration et de déploiement continu (CI/CD).
+* `docs` : Pour la mise à jour ou l'ajout de documentation.
+* `chore` : Pour les tâches de maintenance.
 
 ## 4. Procédure de Pull Request (PR)
 

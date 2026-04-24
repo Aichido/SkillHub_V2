@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * Fichier : ValidateServiceToken.php
+ * Rôle    : Middleware qui valide le jeton Bearer auprès du service Auth avant d'autoriser la requête.
+ * Modifié : 2026-04-21
+ */
+
 namespace App\Http\Middleware;
 
 use Closure;
@@ -9,25 +15,26 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ValidateServiceToken
 {
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $requete, Closure $suivant): Response
     {
-        $token = $request->bearerToken();
+        $jeton = $requete->bearerToken();
 
-        if (! $token) {
+        if (! $jeton) {
             return response()->json(['message' => 'Jeton manquant.'], 401);
         }
 
-        $authUrl  = config('services.auth.url');
+        $urlAuth = config('services.auth.url');
 
-        $response = Http::withToken($token)
-            ->post("{$authUrl}/api/validate-token");
+        // Le jeton est transmis au service Auth qui vérifie sa validité et retourne l'utilisateur
+        $reponseAuth = Http::withToken($jeton)->post("{$urlAuth}/api/validate-token");
 
-        if (! $response->ok() || ! $response->json('valid')) {
+        if (! $reponseAuth->ok() || ! $reponseAuth->json('valid')) {
             return response()->json(['message' => 'Non autorisé.'], 401);
         }
 
-        $request->merge(['auth_user' => $response->json('user')]);
+        // L'utilisateur validé est injecté dans la requête pour les contrôleurs en aval
+        $requete->merge(['auth_user' => $reponseAuth->json('user')]);
 
-        return $next($request);
+        return $suivant($requete);
     }
 }

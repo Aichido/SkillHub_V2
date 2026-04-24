@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * Fichier : ServiceJwt.php
+ * Rôle    : Génère et vérifie les jetons JWT signés en HMAC-SHA256.
+ * Modifié : 2026-04-21
+ */
+
 namespace App\Services;
 
 use Carbon\CarbonImmutable;
@@ -18,52 +24,58 @@ class ServiceJwt
         }
     }
 
-    public function generer(array $payload): string
+    /**
+     * Génère un jeton JWT signé à partir des données fournies en payload.
+     * Le jeton contient trois segments base64url séparés par des points.
+     */
+    public function generer(array $donnees): string
     {
-        $enTete = [
-            'alg' => 'HS256',
-            'typ' => 'JWT',
-        ];
+        $enTete = ['alg' => 'HS256', 'typ' => 'JWT'];
 
         $segments = [
             $this->encoderSegment($enTete),
-            $this->encoderSegment($payload),
+            $this->encoderSegment($donnees),
         ];
 
-        $signature = hash_hmac('sha256', implode('.', $segments), $this->cleSecrete, true);
+        $signature  = hash_hmac('sha256', implode('.', $segments), $this->cleSecrete, true);
         $segments[] = $this->encoderBase64Url($signature);
 
         return implode('.', $segments);
     }
 
+    /**
+     * Décode un jeton JWT et retourne son payload après vérification de la signature et de l'expiration.
+     * Lève une RuntimeException si le jeton est invalide, falsifié ou expiré.
+     */
     public function decoder(string $jeton): array
     {
         $segments = explode('.', $jeton);
 
-        if (count($segments) !== 3) {
+        if (\count($segments) !== 3) {
             throw new RuntimeException('Jeton JWT invalide.');
         }
 
-        [$enTeteEncode, $payloadEncode, $signatureEncodee] = $segments;
+        [$enTeteEncode, $donneesEncodees, $signatureEncodee] = $segments;
 
-        $signatureAttendue = hash_hmac('sha256', $enTeteEncode.'.'.$payloadEncode, $this->cleSecrete, true);
+        // La signature reçue doit correspondre exactement à celle recalculée avec la clé secrète
+        $signatureAttendue = hash_hmac('sha256', $enTeteEncode . '.' . $donneesEncodees, $this->cleSecrete, true);
         $signatureRecue    = $this->decoderBase64Url($signatureEncodee);
 
         if (! hash_equals($signatureAttendue, $signatureRecue)) {
             throw new RuntimeException('Signature JWT invalide.');
         }
 
-        $payloadDecode = json_decode($this->decoderBase64UrlVersTexte($payloadEncode), true);
+        $donneesDecode = json_decode($this->decoderBase64UrlVersTexte($donneesEncodees), true);
 
-        if (! is_array($payloadDecode)) {
+        if (! \is_array($donneesDecode)) {
             throw new RuntimeException('Payload JWT invalide.');
         }
 
-        if (isset($payloadDecode['exp']) && CarbonImmutable::now()->timestamp >= (int) $payloadDecode['exp']) {
+        if (isset($donneesDecode['exp']) && CarbonImmutable::now()->timestamp >= (int) $donneesDecode['exp']) {
             throw new RuntimeException('Jeton JWT expiré.');
         }
 
-        return $payloadDecode;
+        return $donneesDecode;
     }
 
     private function encoderSegment(array $donnees): string
