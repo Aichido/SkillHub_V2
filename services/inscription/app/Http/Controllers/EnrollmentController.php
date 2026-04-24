@@ -18,12 +18,23 @@ class EnrollmentController extends Controller
     {
         $authUser = $request->get('auth_user');
 
+        // 1. Vérification du rôle
         if (($authUser['role'] ?? '') !== 'apprenant') {
             return response()->json(['message' => 'Seuls les apprenants peuvent s\'inscrire à une formation.'], 403);
         }
+        // 2. Vérifier combien de formations active l'utilisateur est inscrit
+        $activeEnrollmentsCount = Enrollment::where('utilisateur_id', $authUser['id'])->count();
 
-        // Vérifier que la formation existe dans le service Catalog
-        $catalogUrl      = config('services.catalog.url');
+        if ($activeEnrollmentsCount >= 5) {
+        return response()->json([
+            'status' => 'error',
+            'code' => 'MAXIMUM_ENROLLMENTS_REACHED',
+            'message' => 'Vous avez atteint le nombre maximum de 5 inscriptions actives. Veuillez terminer ou abandonner une formation avant d\'en commencer une nouvelle.'
+        ], 400);
+    }
+
+        // 3.Vérifier que la formation existe dans le service Catalog
+        $catalogUrl = config('services.catalog.url');
         $catalogResponse = Http::get("{$catalogUrl}/api/formations/{$formationId}");
 
         if (! $catalogResponse->ok()) {
@@ -32,22 +43,22 @@ class EnrollmentController extends Controller
 
         $inscription = Enrollment::query()->firstOrCreate([
             'utilisateur_id' => $authUser['id'],
-            'formation_id'   => $formationId,
+            'formation_id' => $formationId,
         ], [
-            'progression'      => 0,
+            'progression' => 0,
             'date_inscription' => now(),
         ]);
 
         $this->mongoLogger->log('course_enrollment', [
-            'user_id'   => $authUser['id'],
+            'user_id' => $authUser['id'],
             'course_id' => $formationId,
         ]);
 
         return response()->json([
-            'id'              => $inscription->id,
-            'utilisateur_id'  => $inscription->utilisateur_id,
-            'formation_id'    => $inscription->formation_id,
-            'progression'     => $inscription->progression,
+            'id' => $inscription->id,
+            'utilisateur_id' => $inscription->utilisateur_id,
+            'formation_id' => $inscription->formation_id,
+            'progression' => $inscription->progression,
             'date_inscription' => optional($inscription->date_inscription)->toIso8601String(),
         ], 201);
     }
@@ -102,20 +113,20 @@ class EnrollmentController extends Controller
             $formation = $formations->get($inscription->formation_id, []);
 
             return [
-                'id'              => $formation['id'] ?? $inscription->formation_id,
-                'titre'           => $formation['titre'] ?? 'Formation introuvable',
-                'description'     => $formation['description'] ?? '',
-                'category'        => $formation['category'] ?? '',
-                'date'            => $formation['date'] ?? null,
-                'statut'          => $formation['statut'] ?? '',
-                'price'           => $formation['price'] ?? 0,
-                'duration'        => $formation['duration'] ?? 0,
-                'level'           => $formation['level'] ?? '',
-                'vues'            => $formation['vues'] ?? 0,
-                'apprenants'      => $formation['apprenants'] ?? 0,
-                'formateur'       => $formation['formateur'] ?? null,
-                'modules'         => $formation['modules'] ?? [],
-                'progression'     => $inscription->progression,
+                'id' => $formation['id'] ?? $inscription->formation_id,
+                'titre' => $formation['titre'] ?? 'Formation introuvable',
+                'description' => $formation['description'] ?? '',
+                'category' => $formation['category'] ?? '',
+                'date' => $formation['date'] ?? null,
+                'statut' => $formation['statut'] ?? '',
+                'price' => $formation['price'] ?? 0,
+                'duration' => $formation['duration'] ?? 0,
+                'level' => $formation['level'] ?? '',
+                'vues' => $formation['vues'] ?? 0,
+                'apprenants' => $formation['apprenants'] ?? 0,
+                'formateur' => $formation['formateur'] ?? null,
+                'modules' => $formation['modules'] ?? [],
+                'progression' => $inscription->progression,
                 'date_inscription' => optional($inscription->date_inscription)->toIso8601String(),
             ];
         });
