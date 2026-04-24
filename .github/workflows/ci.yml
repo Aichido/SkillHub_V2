@@ -60,6 +60,45 @@ jobs:
 
       - name: Lint Service Inscription
         run: find services/inscription/app -name "*.php" | xargs php -l 2>&1 | grep -E "^(Parse|Fatal) error" && exit 1 || true
+# ==========================================
+# Job 3: Tests Service Auth Spring Boot
+# ==========================================
+tests-auth-springboot:
+  name: Tests Service Auth Spring Boot
+  runs-on: ubuntu-latest
+  needs: [lint-frontend, lint-php]
+  steps:
+    - name: Récupération du code
+      uses: actions/checkout@v4
+
+    - name: Configuration de Java 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 17
+        cache: maven
+
+    - name: Tests du Service Auth Spring Boot
+      working-directory: ./services/auth-spring-boot
+      env:
+        APP_MASTER_KEY: ${{ secrets.APP_MASTER_KEY }}
+        JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        DB_HOST: localhost
+        DB_NAME: db_auth_test
+        DB_USERNAME: root
+        DB_PASSWORD: root
+      run: |
+        mvn clean verify \
+          -Dspring.datasource.url=jdbc:h2:mem:db_auth_test \
+          -Dspring.datasource.driver-class-name=org.h2.Driver \
+          -Dspring.jpa.database-platform=org.hibernate.dialect.H2Dialect \
+          -Dmaven.test.failure.ignore=false
+
+    - name: Sauvegarde couverture Auth Spring Boot
+      uses: actions/upload-artifact@v4
+      with:
+        name: couverture-auth-springboot
+        path: services/auth-spring-boot/target/site/jacoco/jacoco.xml
 
   # ==========================================
   # Job 3: Tests Service Auth
