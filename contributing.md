@@ -7,9 +7,9 @@ Il doit être mis en place dès le premier jour de l'initialisation du dépôt.
 
 Conformément aux exigences du projet, chaque membre est responsable d'un rôle principal. L'équipe est structurée de la manière suivante :
 
-* **Cloud Architect** (Parfait) : Pilote le rapport d'audit cloud, le tableau comparatif des offres, le schéma d'architecture et le plan budgétaire.
-* **DevOps Engineer** (Liwell) : En charge des fichiers Dockerfiles, de la configuration du fichier `docker-compose.yml` et de la mise en place du pipeline CI/CD.
-* **Tech Lead** (Mirana) : Responsable du versionning Git, de la rédaction de ce fichier `CONTRIBUTING.md`, du `README.md`, de l'orchestration globale, des scans de vulnérabilités et de la coordination de l'équipe.
+* **Cloud Architect**  : Pilote le rapport d'audit cloud, le tableau comparatif des offres, le schéma d'architecture et le plan budgétaire.
+* **DevOps Engineer** : En charge des fichiers Dockerfiles, de la configuration du fichier `docker-compose.yml` et de la mise en place du pipeline CI/CD.
+* **Tech Lead**  : Responsable du versionning Git, de la rédaction de ce fichier `CONTRIBUTING.md`, du `README.md`, de l'orchestration globale, des scans de vulnérabilités et de la coordination de l'équipe.
 
 ## 2. Stratégie de Branches
 
