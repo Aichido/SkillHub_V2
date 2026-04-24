@@ -10,7 +10,7 @@ export default function ChangePassword() {
         e.preventDefault();
         
         try {
-            const response = await axios.put(`${import.meta.env.VITE_AUTH_URL}/change-password`, {
+            await axios.put(`${import.meta.env.VITE_AUTH_URL}/change-password`, {
                 ancien_mot_de_passe: ancienPassword,
                 nouveau_mot_de_passe: nouveauPassword
             }, {

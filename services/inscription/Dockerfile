@@ -27,4 +27,4 @@ WORKDIR /var/www
 COPY . /var/www
 
 # Donner les droits d'écriture sur les dossiers de Laravel
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+RUN mkdir -p /var/www/storage /var/www/bootstrap/cache && chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache

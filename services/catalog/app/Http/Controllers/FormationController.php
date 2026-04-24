@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * Fichier : FormationController.php
+ * Rôle    : Gère les opérations CRUD sur les formations (création, lecture, modification, suppression).
+ * Modifié : 2026-04-21
+ */
+
 namespace App\Http\Controllers;
 
 use App\Models\Formation;
@@ -16,37 +22,37 @@ class FormationController extends Controller
 
     public function index(Request $requete): JsonResponse
     {
-        $authUser = $requete->get('auth_user'); // null si route publique
+        $utilisateurAuth = $requete->input('auth_user');
 
-        $query = Formation::query()->with('modules');
+        $requeteDB = Formation::query()->with('modules');
 
         $recherche = trim((string) $requete->query('recherche', $requete->query('search', '')));
         $categorie = trim((string) $requete->query('category', ''));
         $niveau    = trim((string) $requete->query('level', ''));
 
         if ($recherche !== '') {
-            $query->where(function ($q) use ($recherche): void {
+            $requeteDB->where(function ($q) use ($recherche): void {
                 $q->where('titre', 'like', "%{$recherche}%")
                   ->orWhere('description', 'like', "%{$recherche}%");
             });
         }
 
         if ($categorie !== '') {
-            $query->where('category', $categorie);
+            $requeteDB->where('category', $categorie);
         }
 
         if ($niveau !== '') {
-            $query->where('level', $niveau);
+            $requeteDB->where('level', $niveau);
         }
 
-        // Un formateur ne voit que ses formations
-        if ($authUser && ($authUser['role'] ?? '') === 'formateur') {
-            $query->where('user_id', $authUser['id']);
+        // Un formateur connecté ne voit que ses propres formations dans la liste publique
+        if ($utilisateurAuth && ($utilisateurAuth['role'] ?? '') === 'formateur') {
+            $requeteDB->where('user_id', $utilisateurAuth['id']);
         }
 
-        $inclureUserId = $authUser && ($authUser['role'] ?? '') === 'formateur';
+        $inclureUserId = $utilisateurAuth && ($utilisateurAuth['role'] ?? '') === 'formateur';
 
-        $formations = $query->orderByDesc('date')->get()
+        $formations = $requeteDB->orderByDesc('date')->get()
             ->map(fn (Formation $f) => $this->presenterFormation($f, $inclureUserId));
 
         return response()->json($formations);
@@ -54,14 +60,14 @@ class FormationController extends Controller
 
     public function myFormations(Request $requete): JsonResponse
     {
-        $authUser = $requete->get('auth_user');
+        $utilisateurAuth = $requete->input('auth_user');
 
-        if (($authUser['role'] ?? '') !== 'formateur') {
+        if (($utilisateurAuth['role'] ?? '') !== 'formateur') {
             return response()->json(['message' => 'Seuls les formateurs peuvent accéder à leurs formations.'], 403);
         }
 
         $formations = Formation::query()
-            ->where('user_id', $authUser['id'])
+            ->where('user_id', $utilisateurAuth['id'])
             ->with('modules')
             ->orderByDesc('date')
             ->get()
@@ -91,44 +97,32 @@ class FormationController extends Controller
 
     public function store(Request $requete): JsonResponse
     {
-        $authUser = $requete->get('auth_user');
+        $utilisateurAuth = $requete->input('auth_user');
 
-        if (($authUser['role'] ?? '') !== 'formateur') {
+        if (($utilisateurAuth['role'] ?? '') !== 'formateur') {
             return response()->json(['message' => 'Seuls les formateurs peuvent créer une formation.'], 403);
         }
 
-        $donneesValidees = $requete->validate([
-            'titre'              => ['required', 'string', 'max:255'],
-            'description'        => ['required', 'string'],
-            'category'           => ['required', 'string', 'max:100'],
-            'date'               => ['required', 'date'],
-            'statut'             => ['nullable', 'string', 'max:60'],
-            'price'              => ['required', 'numeric', 'min:0'],
-            'duration'           => ['required', 'integer', 'min:1'],
-            'level'              => ['required', 'in:beginner,intermediaire,advanced'],
-            'modules'            => ['nullable', 'array', 'min:3'],
-            'modules.*.titre'    => ['required_with:modules', 'string', 'max:255'],
-            'modules.*.contenu'  => ['required_with:modules', 'string'],
-        ]);
+        $donneesValidees = $requete->validate($this->reglesFormation(true));
 
         $formation = Formation::query()->create([
-            'titre'         => $donneesValidees['titre'],
-            'description'   => $donneesValidees['description'],
-            'category'      => $donneesValidees['category'],
-            'date'          => $donneesValidees['date'],
-            'statut'        => $donneesValidees['statut'] ?? 'À venir',
-            'price'         => $donneesValidees['price'],
-            'duration'      => $donneesValidees['duration'],
-            'level'         => $donneesValidees['level'],
-            'vues'          => 0,
-            'user_id'       => $authUser['id'],
-            'formateur_nom' => $authUser['nom'],
+            'titre'            => $donneesValidees['titre'],
+            'description'      => $donneesValidees['description'],
+            'category'         => $donneesValidees['category'],
+            'date'             => $donneesValidees['date'],
+            'statut'           => $donneesValidees['statut'] ?? 'À venir',
+            'price'            => $donneesValidees['price'],
+            'duration'         => $donneesValidees['duration'],
+            'level'            => $donneesValidees['level'],
+            'vues'             => 0,
+            'user_id'          => $utilisateurAuth['id'],
+            'formateur_nom'    => $utilisateurAuth['nom'],
             'apprenants_count' => 0,
         ]);
 
         $this->mongoLogger->log('course_created', [
             'course_id'  => $formation->id,
-            'created_by' => $authUser['id'],
+            'created_by' => $utilisateurAuth['id'],
         ]);
 
         $this->remplacerModules($formation, $donneesValidees['modules'] ?? $this->modulesParDefaut());
@@ -138,29 +132,17 @@ class FormationController extends Controller
 
     public function update(Request $requete, Formation $formation): JsonResponse
     {
-        $authUser = $requete->get('auth_user');
+        $utilisateurAuth = $requete->input('auth_user');
 
-        if (($authUser['role'] ?? '') !== 'formateur') {
+        if (($utilisateurAuth['role'] ?? '') !== 'formateur') {
             return response()->json(['message' => 'Seuls les formateurs peuvent modifier une formation.'], 403);
         }
 
-        if ($formation->user_id !== $authUser['id']) {
+        if ($formation->user_id !== $utilisateurAuth['id']) {
             return response()->json(['message' => 'Cette formation ne vous appartient pas.'], 403);
         }
 
-        $donneesValidees = $requete->validate([
-            'titre'             => ['required', 'string', 'max:255'],
-            'description'       => ['required', 'string'],
-            'category'          => ['required', 'string', 'max:100'],
-            'date'              => ['required', 'date'],
-            'statut'            => ['nullable', 'string', 'max:60'],
-            'price'             => ['nullable', 'numeric', 'min:0'],
-            'duration'          => ['nullable', 'integer', 'min:1'],
-            'level'             => ['nullable', 'in:beginner,intermediaire,advanced'],
-            'modules'           => ['nullable', 'array', 'min:3'],
-            'modules.*.titre'   => ['required_with:modules', 'string', 'max:255'],
-            'modules.*.contenu' => ['required_with:modules', 'string'],
-        ]);
+        $donneesValidees = $requete->validate($this->reglesFormation(false));
 
         $formation->update([
             'titre'       => $donneesValidees['titre'],
@@ -175,10 +157,10 @@ class FormationController extends Controller
 
         $this->mongoLogger->log('course_update', [
             'course_id'  => $formation->id,
-            'updated_by' => $authUser['id'],
+            'updated_by' => $utilisateurAuth['id'],
         ]);
 
-        if (array_key_exists('modules', $donneesValidees)) {
+        if (\array_key_exists('modules', $donneesValidees)) {
             $this->remplacerModules($formation, $donneesValidees['modules']);
         }
 
@@ -187,25 +169,48 @@ class FormationController extends Controller
 
     public function destroy(Request $requete, Formation $formation): JsonResponse
     {
-        $authUser = $requete->get('auth_user');
+        $utilisateurAuth = $requete->input('auth_user');
 
-        if (($authUser['role'] ?? '') !== 'formateur') {
+        if (($utilisateurAuth['role'] ?? '') !== 'formateur') {
             return response()->json(['message' => 'Seuls les formateurs peuvent supprimer une formation.'], 403);
         }
 
-        if ($formation->user_id !== $authUser['id']) {
+        if ($formation->user_id !== $utilisateurAuth['id']) {
             return response()->json(['message' => 'Cette formation ne vous appartient pas.'], 403);
         }
 
-        $formationId = $formation->id;
+        $idFormation = $formation->id;
         $formation->delete();
 
         $this->mongoLogger->log('course_deleted', [
-            'course_id'  => $formationId,
-            'deleted_by' => $authUser['id'],
+            'course_id'  => $idFormation,
+            'deleted_by' => $utilisateurAuth['id'],
         ]);
 
         return response()->json(['message' => 'Formation supprimée avec succès.']);
+    }
+
+    /**
+     * Retourne les règles de validation communes à la création et à la modification.
+     * Le paramètre $creation rend obligatoires price, duration et level uniquement à la création.
+     */
+    private function reglesFormation(bool $creation): array
+    {
+        $requis = $creation ? 'required' : 'nullable';
+
+        return [
+            'titre'             => ['required', 'string', 'max:255'],
+            'description'       => ['required', 'string'],
+            'category'          => ['required', 'string', 'max:100'],
+            'date'              => ['required', 'date'],
+            'statut'            => ['nullable', 'string', 'max:60'],
+            'price'             => [$requis, 'numeric', 'min:0'],
+            'duration'          => [$requis, 'integer', 'min:1'],
+            'level'             => [$requis, 'in:beginner,intermediaire,advanced'],
+            'modules'           => ['nullable', 'array', 'min:3'],
+            'modules.*.titre'   => ['required_with:modules', 'string', 'max:255'],
+            'modules.*.contenu' => ['required_with:modules', 'string'],
+        ];
     }
 
     private function presenterFormation(Formation $formation, bool $inclureUserId): array
@@ -232,6 +237,10 @@ class FormationController extends Controller
         return $donnees;
     }
 
+    /**
+     * Supprime tous les modules existants et les recrée dans l'ordre fourni.
+     * Cette approche simple remplace un diff complexe ligne par ligne.
+     */
     private function remplacerModules(Formation $formation, array $modules): void
     {
         $formation->modules()->delete();

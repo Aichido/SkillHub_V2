@@ -1,0 +1,45 @@
+# Dépendances
+node_modules/
+vendor/
+
+# Variables d'environnement (jamais commiter .env)
+.env
+.env.local
+.env.*.local
+*.env
+
+# Fichiers de build
+dist/
+build/
+public/hot
+public/storage
+
+# Laravel
+storage/framework/cache/
+storage/framework/sessions/
+storage/framework/views/
+storage/logs/
+bootstrap/cache/
+
+# Coverage / tests
+coverage/
+*.xml
+!sonar-project.properties
+
+# Éditeurs
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docker
+*.log
+
+# PHP Composer
+composer.phar
+
+# MongoDB config local
+*.env.mongodb
+mongo.md

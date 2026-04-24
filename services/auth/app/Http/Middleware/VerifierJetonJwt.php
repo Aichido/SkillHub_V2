@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * Fichier : VerifierJetonJwt.php
+ * Rôle    : Middleware qui vérifie le jeton JWT sur chaque requête protégée du service Auth.
+ * Modifié : 2026-04-21
+ */
+
 namespace App\Http\Middleware;
 
 use App\Models\User;
@@ -24,20 +30,21 @@ class VerifierJetonJwt
             return response()->json(['message' => 'Jeton manquant.'], 401);
         }
 
+        // Un jeton blacklisté est rejeté même s'il n'est pas encore expiré
         if (Cache::has($this->cleBlacklist($jeton))) {
             return response()->json(['message' => 'Jeton invalide ou expiré.'], 403);
         }
 
         try {
-            $payload      = $this->serviceJwt->decoder($jeton);
-            $idUtilisateur = (int) ($payload['sub'] ?? 0);
-
-            $utilisateur = User::query()->find($idUtilisateur);
+            $donneesJwt    = $this->serviceJwt->decoder($jeton);
+            $idUtilisateur = (int) ($donneesJwt['sub'] ?? 0);
+            $utilisateur   = User::query()->find($idUtilisateur);
 
             if (! $utilisateur) {
                 return response()->json(['message' => 'Utilisateur introuvable.'], 401);
             }
 
+            // L'utilisateur est injecté dans la requête pour être accessible dans les contrôleurs
             $requete->setUserResolver(fn () => $utilisateur);
 
             return $suivant($requete);
@@ -48,6 +55,6 @@ class VerifierJetonJwt
 
     private function cleBlacklist(string $jeton): string
     {
-        return 'jwt_blacklist:'.hash('sha256', $jeton);
+        return 'jwt_blacklist:' . hash('sha256', $jeton);
     }
 }
