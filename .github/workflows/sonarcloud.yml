@@ -1,4 +1,4 @@
-name: CI/CD Pipeline - SkillHub BC03
+name: CI/CD Pipeline - SkillHub
 
 on:
   push:
@@ -37,7 +37,7 @@ jobs:
           DB_CONNECTION=sqlite DB_DATABASE=database/database.sqlite php artisan test
 
   # ==========================================
-  # Job 2: Analyse de code gérée par le Tech Lead (Mirana)
+  # Job 2: Analyse de code 
   # ==========================================
   sonar-scan:
     name: Scan de vulnérabilités (SonarQube)
@@ -56,7 +56,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   # ==========================================
-  # Job 3: Build des images Docker géré par le DevOps (Liwell)
+  # Job 3: Build des images Docker 
   # ==========================================
   docker-build:
     name: Build des images Docker
