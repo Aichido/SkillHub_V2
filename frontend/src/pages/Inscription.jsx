@@ -21,7 +21,7 @@ function Inscription() {
   const [chargement, setChargement] = useState(false);
   const navigate = useNavigate();
 
-  const expressionEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const expressionEmail = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
   const expressionMotDePasseRobuste = /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 
   // Validation locale pour éviter un aller-retour serveur quand les données sont clairement invalides.

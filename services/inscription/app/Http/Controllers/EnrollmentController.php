@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * Fichier : EnrollmentController.php
+ * Rôle    : Gère les inscriptions des apprenants aux formations (inscription, désinscription, liste).
+ * Modifié : 2026-04-21
+ */
+
 namespace App\Http\Controllers;
 
 use App\Models\Enrollment;
@@ -14,71 +20,70 @@ class EnrollmentController extends Controller
     {
     }
 
-    public function store(Request $request, int $formationId): JsonResponse
+    public function store(Request $requete, int $idFormation): JsonResponse
     {
-        $authUser = $request->get('auth_user');
+        $utilisateurAuth = $requete->input('auth_user');
 
-        if (($authUser['role'] ?? '') !== 'apprenant') {
-            return response()->json(['message' => 'Seuls les apprenants peuvent s\'inscrire à une formation.'], 403);
+        if (($utilisateurAuth['role'] ?? '') !== 'apprenant') {
+            return response()->json(['message' => "Seuls les apprenants peuvent s'inscrire à une formation."], 403);
         }
 
-        // Vérifier que la formation existe dans le service Catalog
-        $catalogUrl      = config('services.catalog.url');
-        $catalogResponse = Http::get("{$catalogUrl}/api/formations/{$formationId}");
+        // La formation est vérifiée auprès du service Catalog avant toute inscription
+        $urlCatalog     = config('services.catalog.url');
+        $reponseApi     = Http::get("{$urlCatalog}/api/formations/{$idFormation}");
 
-        if (! $catalogResponse->ok()) {
+        if (! $reponseApi->ok()) {
             return response()->json(['message' => 'Formation introuvable.'], 404);
         }
 
         $inscription = Enrollment::query()->firstOrCreate([
-            'utilisateur_id' => $authUser['id'],
-            'formation_id'   => $formationId,
+            'utilisateur_id' => $utilisateurAuth['id'],
+            'formation_id'   => $idFormation,
         ], [
             'progression'      => 0,
             'date_inscription' => now(),
         ]);
 
         $this->mongoLogger->log('course_enrollment', [
-            'user_id'   => $authUser['id'],
-            'course_id' => $formationId,
+            'user_id'   => $utilisateurAuth['id'],
+            'course_id' => $idFormation,
         ]);
 
         return response()->json([
-            'id'              => $inscription->id,
-            'utilisateur_id'  => $inscription->utilisateur_id,
-            'formation_id'    => $inscription->formation_id,
-            'progression'     => $inscription->progression,
+            'id'               => $inscription->id,
+            'utilisateur_id'   => $inscription->utilisateur_id,
+            'formation_id'     => $inscription->formation_id,
+            'progression'      => $inscription->progression,
             'date_inscription' => optional($inscription->date_inscription)->toIso8601String(),
         ], 201);
     }
 
-    public function destroy(Request $request, int $formationId): JsonResponse
+    public function destroy(Request $requete, int $idFormation): JsonResponse
     {
-        $authUser = $request->get('auth_user');
+        $utilisateurAuth = $requete->input('auth_user');
 
-        if (($authUser['role'] ?? '') !== 'apprenant') {
+        if (($utilisateurAuth['role'] ?? '') !== 'apprenant') {
             return response()->json(['message' => 'Seuls les apprenants peuvent se désinscrire.'], 403);
         }
 
         Enrollment::query()
-            ->where('utilisateur_id', $authUser['id'])
-            ->where('formation_id', $formationId)
+            ->where('utilisateur_id', $utilisateurAuth['id'])
+            ->where('formation_id', $idFormation)
             ->delete();
 
         return response()->json(['message' => 'Désinscription effectuée.']);
     }
 
-    public function myCourses(Request $request): JsonResponse
+    public function myCourses(Request $requete): JsonResponse
     {
-        $authUser = $request->get('auth_user');
+        $utilisateurAuth = $requete->input('auth_user');
 
-        if (($authUser['role'] ?? '') !== 'apprenant') {
+        if (($utilisateurAuth['role'] ?? '') !== 'apprenant') {
             return response()->json(['message' => 'Seuls les apprenants peuvent accéder à cette ressource.'], 403);
         }
 
-        // Récupérer les inscriptions de l'utilisateur
         $inscriptions = Enrollment::query()
-            ->where('utilisateur_id', $authUser['id'])
+            ->where('utilisateur_id', $utilisateurAuth['id'])
             ->orderByDesc('date_inscription')
             ->get();
 
@@ -86,40 +91,40 @@ class EnrollmentController extends Controller
             return response()->json([]);
         }
 
-        // Récupérer les détails des formations depuis le service Catalog
-        $catalogUrl   = config('services.catalog.url');
-        $formationIds = $inscriptions->pluck('formation_id')->unique()->values()->all();
+        // Les détails de chaque formation sont récupérés individuellement depuis le service Catalog
+        $urlCatalog   = config('services.catalog.url');
+        $idsFormation = $inscriptions->pluck('formation_id')->unique()->values()->all();
 
         $formations = collect();
-        foreach ($formationIds as $id) {
-            $response = Http::get("{$catalogUrl}/api/formations/{$id}");
-            if ($response->ok()) {
-                $formations->put($id, $response->json());
+        foreach ($idsFormation as $id) {
+            $reponseApi = Http::get("{$urlCatalog}/api/formations/{$id}");
+            if ($reponseApi->ok()) {
+                $formations->put($id, $reponseApi->json());
             }
         }
 
-        $result = $inscriptions->map(function (Enrollment $inscription) use ($formations): array {
+        $resultat = $inscriptions->map(function (Enrollment $inscription) use ($formations): array {
             $formation = $formations->get($inscription->formation_id, []);
 
             return [
-                'id'              => $formation['id'] ?? $inscription->formation_id,
-                'titre'           => $formation['titre'] ?? 'Formation introuvable',
-                'description'     => $formation['description'] ?? '',
-                'category'        => $formation['category'] ?? '',
-                'date'            => $formation['date'] ?? null,
-                'statut'          => $formation['statut'] ?? '',
-                'price'           => $formation['price'] ?? 0,
-                'duration'        => $formation['duration'] ?? 0,
-                'level'           => $formation['level'] ?? '',
-                'vues'            => $formation['vues'] ?? 0,
-                'apprenants'      => $formation['apprenants'] ?? 0,
-                'formateur'       => $formation['formateur'] ?? null,
-                'modules'         => $formation['modules'] ?? [],
-                'progression'     => $inscription->progression,
+                'id'               => $formation['id'] ?? $inscription->formation_id,
+                'titre'            => $formation['titre'] ?? 'Formation introuvable',
+                'description'      => $formation['description'] ?? '',
+                'category'         => $formation['category'] ?? '',
+                'date'             => $formation['date'] ?? null,
+                'statut'           => $formation['statut'] ?? '',
+                'price'            => $formation['price'] ?? 0,
+                'duration'         => $formation['duration'] ?? 0,
+                'level'            => $formation['level'] ?? '',
+                'vues'             => $formation['vues'] ?? 0,
+                'apprenants'       => $formation['apprenants'] ?? 0,
+                'formateur'        => $formation['formateur'] ?? null,
+                'modules'          => $formation['modules'] ?? [],
+                'progression'      => $inscription->progression,
                 'date_inscription' => optional($inscription->date_inscription)->toIso8601String(),
             ];
         });
 
-        return response()->json($result->values());
+        return response()->json($resultat->values());
     }
 }

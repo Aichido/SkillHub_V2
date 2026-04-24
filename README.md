@@ -100,14 +100,15 @@ Objectifs Bloc 03 : industrialisation, conteneurisation, automatisation, quali
 ## 4. Structure du dépôt
 
 ```
-/frontend                # Application React.js (Vite)
-/services/auth           # Microservice Authentification (Laravel)
-/services/catalog        # Microservice Catalogue (Laravel)
-/services/inscription    # Microservice Inscriptions (Laravel)
-/docker-compose.yml      # Orchestration multi-conteneurs
+/frontend                   # Application React.js (Vite)
+/services/auth-spring-boot  # Microservice Authentification (Spring boot)
+/services/auth              # Microservice Authentification (Laravel)
+/services/catalog           # Microservice Catalogue (Laravel)
+/services/inscription       # Microservice Inscriptions (Laravel)
+/docker-compose.yml         # Orchestration multi-conteneurs
 /DOCUMENTATION_TECHNIQUE.md # Doc technique détaillée
-/contributing.md        # Guide de contribution
-/sonar-project.properties# Configurtion SonarCloud
+/contributing.md            # Guide de contribution
+/sonar-project.properties   # Configurtion SonarCloud
 ```
 
 Chaque microservice contient :
@@ -122,14 +123,6 @@ Chaque microservice contient :
 
 - Docker & Docker Compose
 - Node.js 18+
-
-### Clonage & lancement
-
-```sh
-git clone https://github.com/Andrimirana/skillhub-groupe-BC03.git
-cd skillhub-groupe-BC03
-docker compose up -d
-```
 
 Le frontend sera accessible sur le port 5173, les microservices sur 8001 (auth), 8002 (catalog), 8003 (inscription).
 
@@ -270,7 +263,7 @@ docker compose logs auth_api
 
 ## Auteurs & Encadrement
 
-Projet réalisé par le groupe BC03 dans le cadre du Bachelor CDWFS, sous la supervision de l’équipe pédagogique.
+Projet réalisé par l'étudiant MU202618 dans le cadre du Bachelor CDWFS.
 
 ---
 

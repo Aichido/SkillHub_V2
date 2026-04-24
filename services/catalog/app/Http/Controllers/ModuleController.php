@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * Fichier : ModuleController.php
+ * Rôle    : Gère les modules d'une formation (ajout, modification, suppression) réservés au formateur propriétaire.
+ * Modifié : 2026-04-21
+ */
+
 namespace App\Http\Controllers;
 
 use App\Models\Formation;
@@ -10,6 +16,9 @@ use Illuminate\Http\Request;
 
 class ModuleController extends Controller
 {
+    private const ROLE_FORMATEUR    = 'formateur';
+    private const MSG_FORMATEUR_REQ = 'Seuls les formateurs peuvent gérer les modules.';
+
     public function __construct(private MongoActivityLogger $mongoLogger)
     {
     }
@@ -23,13 +32,13 @@ class ModuleController extends Controller
 
     public function store(Request $requete, Formation $formation): JsonResponse
     {
-        $authUser = $requete->get('auth_user');
+        $utilisateurAuth = $requete->input('auth_user');
 
-        if (($authUser['role'] ?? '') !== 'formateur') {
-            return response()->json(['message' => 'Seuls les formateurs peuvent gérer les modules.'], 403);
+        if (($utilisateurAuth['role'] ?? '') !== self::ROLE_FORMATEUR) {
+            return response()->json(['message' => self::MSG_FORMATEUR_REQ], 403);
         }
 
-        if ($formation->user_id !== $authUser['id']) {
+        if ($formation->user_id !== $utilisateurAuth['id']) {
             return response()->json(['message' => 'Cette formation ne vous appartient pas.'], 403);
         }
 
@@ -39,6 +48,7 @@ class ModuleController extends Controller
             'ordre'   => ['nullable', 'integer', 'min:1'],
         ]);
 
+        // Si aucun ordre n'est fourni, le module est placé après le dernier existant
         $ordre = $donneesValidees['ordre'] ?? ((int) $formation->modules()->max('ordre') + 1);
 
         $module = Module::query()->create([
@@ -51,7 +61,7 @@ class ModuleController extends Controller
         $this->mongoLogger->log('module_created', [
             'formation_id' => $formation->id,
             'module_id'    => $module->id,
-            'created_by'   => $authUser['id'],
+            'created_by'   => $utilisateurAuth['id'],
         ]);
 
         return response()->json($this->presenterModule($module), 201);
@@ -59,14 +69,14 @@ class ModuleController extends Controller
 
     public function update(Request $requete, Module $module): JsonResponse
     {
-        $authUser = $requete->get('auth_user');
-        $formation = $module->formation;
+        $utilisateurAuth = $requete->input('auth_user');
+        $formation       = $module->formation;
 
-        if (($authUser['role'] ?? '') !== 'formateur') {
-            return response()->json(['message' => 'Seuls les formateurs peuvent gérer les modules.'], 403);
+        if (($utilisateurAuth['role'] ?? '') !== self::ROLE_FORMATEUR) {
+            return response()->json(['message' => self::MSG_FORMATEUR_REQ], 403);
         }
 
-        if (! $formation || $formation->user_id !== $authUser['id']) {
+        if (! $formation || $formation->user_id !== $utilisateurAuth['id']) {
             return response()->json(['message' => 'Ce module ne vous appartient pas.'], 403);
         }
 
@@ -81,7 +91,7 @@ class ModuleController extends Controller
         $this->mongoLogger->log('module_updated', [
             'formation_id' => $formation->id,
             'module_id'    => $module->id,
-            'updated_by'   => $authUser['id'],
+            'updated_by'   => $utilisateurAuth['id'],
         ]);
 
         return response()->json($this->presenterModule($module));
@@ -89,30 +99,33 @@ class ModuleController extends Controller
 
     public function destroy(Request $requete, Module $module): JsonResponse
     {
-        $authUser  = $requete->get('auth_user');
-        $formation = $module->formation;
+        $utilisateurAuth = $requete->input('auth_user');
+        $formation       = $module->formation;
 
-        if (($authUser['role'] ?? '') !== 'formateur') {
-            return response()->json(['message' => 'Seuls les formateurs peuvent gérer les modules.'], 403);
+        if (($utilisateurAuth['role'] ?? '') !== self::ROLE_FORMATEUR) {
+            return response()->json(['message' => self::MSG_FORMATEUR_REQ], 403);
         }
 
-        if (! $formation || $formation->user_id !== $authUser['id']) {
+        if (! $formation || $formation->user_id !== $utilisateurAuth['id']) {
             return response()->json(['message' => 'Ce module ne vous appartient pas.'], 403);
         }
 
-        $moduleId    = $module->id;
-        $formationId = $formation->id;
+        $idModule    = $module->id;
+        $idFormation = $formation->id;
         $module->delete();
 
         $this->mongoLogger->log('module_deleted', [
-            'formation_id' => $formationId,
-            'module_id'    => $moduleId,
-            'deleted_by'   => $authUser['id'],
+            'formation_id' => $idFormation,
+            'module_id'    => $idModule,
+            'deleted_by'   => $utilisateurAuth['id'],
         ]);
 
         return response()->json(['message' => 'Module supprimé.']);
     }
 
+    /**
+     * Formate un module en tableau simple pour les réponses JSON de l'API.
+     */
     private function presenterModule(Module $module): array
     {
         return [

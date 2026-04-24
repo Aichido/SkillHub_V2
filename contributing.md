@@ -7,9 +7,9 @@ Il doit être mis en place dès le premier jour de l'initialisation du dépôt.
 
 Conformément aux exigences du projet, chaque membre est responsable d'un rôle principal. L'équipe est structurée de la manière suivante :
 
-* **Cloud Architect** (Parfait) : Pilote le rapport d'audit cloud, le tableau comparatif des offres, le schéma d'architecture et le plan budgétaire.
-* **DevOps Engineer** (Liwell) : En charge des fichiers Dockerfiles, de la configuration du fichier `docker-compose.yml` et de la mise en place du pipeline CI/CD.
-* **Tech Lead** (Mirana) : Responsable du versionning Git, de la rédaction de ce fichier `CONTRIBUTING.md`, du `README.md`, de l'orchestration globale, des scans de vulnérabilités et de la coordination de l'équipe.
+* **Cloud Architect**  : Pilote le rapport d'audit cloud, le tableau comparatif des offres, le schéma d'architecture et le plan budgétaire.
+* **DevOps Engineer** : En charge des fichiers Dockerfiles, de la configuration du fichier `docker-compose.yml` et de la mise en place du pipeline CI/CD.
+* **Tech Lead**  : Responsable du versionning Git, de la rédaction de ce fichier `CONTRIBUTING.md`, du `README.md`, de l'orchestration globale, des scans de vulnérabilités et de la coordination de l'équipe.
 
 ## 2. Stratégie de Branches
 
@@ -19,7 +19,7 @@ Afin de garantir un code lisible et d'assurer une bonne traçabilité de nos con
 **Aucun commit direct n'y est autorisé**.
 * `dev` : Branche d'intégration de travail par défaut qui accumule toutes les fonctionnalités validées.
 * `feature/<nom>` : Branche utilisée pour développer une nouvelle fonctionnalité ou réaliser une tâche spécifique. Tout développement doit passer par ce type de branche.
-* `hotfix/<nom>` : Branche dédiée aux correctifs urgents. [cite_start]Il est recommandé de fusionner ces correctifs vers `main` et `dev`.
+* `hotfix/<nom>` : Branche dédiée aux correctifs urgents. Il est recommandé de fusionner ces correctifs vers `main` et `dev`.
 
 ## 3. Format des Commits (Conventional Commits)
 
@@ -28,9 +28,9 @@ Le dépôt Git servant de preuve de notre contribution individuelle, nous exigeo
 * `feat` : Pour l'ajout d'une nouvelle fonctionnalité.
 * `fix` : Pour la correction d'un bug.
 * `docker` : Pour l'ajout ou la modification des fichiers de conteneurisation.
-* [cite_start]`ci` : Pour toute modification apportée au pipeline d'intégration et de déploiement continu (CI/CD).
-* [cite_start]`docs` : Pour la mise à jour ou l'ajout de documentation.
-* [cite_start]`chore` : Pour les tâches de maintenance.
+* `ci` : Pour toute modification apportée au pipeline d'intégration et de déploiement continu (CI/CD).
+* `docs` : Pour la mise à jour ou l'ajout de documentation.
+* `chore` : Pour les tâches de maintenance.
 
 ## 4. Procédure de Pull Request (PR)
 

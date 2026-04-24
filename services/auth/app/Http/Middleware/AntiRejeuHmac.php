@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * Fichier : AntiRejeuHmac.php
+ * Rôle    : Middleware qui bloque les attaques par rejeu grâce à HMAC, nonce et horodatage.
+ * Modifié : 2026-04-21
+ */
+
 namespace App\Http\Middleware;
 
 use Closure;
@@ -8,40 +14,38 @@ use Illuminate\Support\Facades\Cache;
 
 class AntiRejeuHmac
 {
-    public function handle(Request $requete, Closure $next)
-    {
-        $signature = $requete->header('X-HMAC-Signature');
-        $nonce = $requete->header('X-Nonce');
-        $timestamp = $requete->header('X-Timestamp');
+    private const LIMITE_SECONDES = 300;
 
-        // 1. Vérifier que les en-têtes sont présents
-        if (!$signature || !$nonce || !$timestamp) {
+    public function handle(Request $requete, Closure $suivant): mixed
+    {
+        $signature    = $requete->header('X-HMAC-Signature');
+        $nonce        = $requete->header('X-Nonce');
+        $horodatage   = $requete->header('X-Timestamp');
+
+        if (! $signature || ! $nonce || ! $horodatage) {
             return response()->json(['message' => 'Paramètres de sécurité manquants.'], 403);
         }
 
-        // 2. Vérifier l'expiration du Timestamp (ex: rejeté si vieux de plus de 5 minutes)
-        $limiteTemps = 300; // 5 minutes en secondes
-        if (abs(time() - $timestamp) > $limiteTemps) {
+        // La requête est rejetée si elle date de plus de 5 minutes
+        if (\abs(time() - (int) $horodatage) > self::LIMITE_SECONDES) {
             return response()->json(['message' => 'Requête expirée.'], 403);
         }
 
-        // 3. Vérifier le Nonce (s'il a déjà été utilisé, on bloque)
+        // Un nonce déjà utilisé signale une tentative de rejeu
         $cleCacheNonce = 'nonce_' . $nonce;
         if (Cache::has($cleCacheNonce)) {
             return response()->json(['message' => 'Tentative de rejeu détectée.'], 403);
         }
 
-        // 4. Vérifier la signature HMAC
-        $payload = $requete->getContent() . $nonce . $timestamp;
-        $signatureAttendue = hash_hmac('sha256', $payload, env('APP_MASTER_KEY', 'CleDeTestSecrete123!'));
+        $contenuAVerifier  = $requete->getContent() . $nonce . $horodatage;
+        $signatureAttendue = hash_hmac('sha256', $contenuAVerifier, env('APP_MASTER_KEY', 'CleDeTestSecrete123!'));
 
-        if (!hash_equals($signatureAttendue, $signature)) {
+        if (! hash_equals($signatureAttendue, $signature)) {
             return response()->json(['message' => 'Signature invalide.'], 403);
         }
 
-        // 5. Enregistrer le Nonce pour qu'il ne puisse plus être utilisé
-        Cache::put($cleCacheNonce, true, $limiteTemps);
+        Cache::put($cleCacheNonce, true, self::LIMITE_SECONDES);
 
-        return $next($requete);
+        return $suivant($requete);
     }
 }

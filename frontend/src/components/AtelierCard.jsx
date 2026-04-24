@@ -1,6 +1,7 @@
+import PropTypes from "prop-types";
 import "../styles/atelierCard.css";
 
-//afichage des ateliers une par une
+// Affichage des ateliers une par une
 function AtelierCard({ image = null, titre, description, date, statut, inscrits, price, duration, level, actions = null }) {
   const dateAffichee = new Date(date).toLocaleDateString("fr-FR");
   const prixAffiche = `${new Intl.NumberFormat("fr-FR", {
@@ -14,7 +15,7 @@ function AtelierCard({ image = null, titre, description, date, statut, inscrits,
   };
 
   return (
-    <div className="atelier-card" tabIndex="0">
+    <div className="atelier-card">
       {image && (
         <div className="atelier-card-image-wrap">
           <img src={image} alt="" className="atelier-card-image" aria-hidden="true" />
@@ -42,5 +43,18 @@ function AtelierCard({ image = null, titre, description, date, statut, inscrits,
     </div>
   );
 }
+
+AtelierCard.propTypes = {
+  image: PropTypes.string,
+  titre: PropTypes.string.isRequired,
+  description: PropTypes.string,
+  date: PropTypes.string,
+  statut: PropTypes.string,
+  inscrits: PropTypes.number,
+  price: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  duration: PropTypes.number,
+  level: PropTypes.string,
+  actions: PropTypes.node,
+};
 
 export default AtelierCard;
