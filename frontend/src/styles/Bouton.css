@@ -1,0 +1,61 @@
+.btn-create {
+  padding: 11px 16px;
+  background: linear-gradient(135deg, #623cde, #4a31b0);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.93rem;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.btn-create:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(74, 49, 176, 0.3);
+  text-decoration: none;
+}
+
+.btn-create:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  padding: 11px 16px;
+  background: #ffffff;
+  color: #4a31b0;
+  border: 1px solid #cfd4ea;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.93rem;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-secondary:hover {
+  background: #f2efff;
+  border-color: #b6bde0;
+  text-decoration: none;
+}
+
+[data-theme="dark"] .btn-secondary {
+  background: #2a3249;
+  color: #e9edff;
+  border-color: #4b567a;
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+  background: #353e5d;
+  border-color: #60719b;
+}

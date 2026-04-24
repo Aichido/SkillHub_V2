@@ -1,0 +1,32 @@
+.form-create {
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.form-create label {
+    display: flex;
+    flex-direction: column;
+    font-size: 14px;
+    color: #333;
+}
+
+.form-create input,
+.form-create textarea {
+    margin-top: 6px;
+    padding: 10px;
+    font-size: 14px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+.form-create textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.error {
+    color: red;
+    font-size: 14px;
+}

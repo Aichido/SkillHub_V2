@@ -1,0 +1,165 @@
+/* TABLEAU PRINCIPAL */
+.liste {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #e7e9f4;
+  box-shadow: 0 10px 24px rgba(47, 55, 95, 0.08);
+  font-size: 14px;
+}
+
+.liste thead {
+  background: rgba(98, 60, 222, 0.08);
+}
+
+.liste th,
+.liste td {
+  padding: 13px 12px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.liste th {
+  color: #464d69;
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.01em;
+}
+
+.liste tbody tr {
+  border-bottom: 1px solid #edf0f9;
+}
+
+.liste tbody tr:last-child {
+  border-bottom: none;
+}
+
+.liste tbody tr:hover {
+  background: #fafafe;
+}
+
+.liste td {
+  color: inherit;
+}
+
+.liste td:nth-child(2),
+.liste th:nth-child(2) {
+  text-align: center;
+  font-weight: 500;
+}
+
+.liste td:last-child,
+.liste th:last-child {
+  text-align: center;
+}
+
+.liste td:last-child {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* BOUTONS ACTIONS */
+.btn-edit,
+.btn-delete {
+  padding: 7px 11px;
+  border: none;
+  border-radius: 9px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.btn-edit {
+  background: rgba(98, 60, 222, 0.15);
+  color: #623cde;
+}
+
+.btn-edit:hover {
+  background: rgba(98, 60, 222, 0.25);
+  transform: translateY(-1px);
+}
+
+.btn-delete {
+  background: rgba(220, 53, 69, 0.15);
+  color: #c53243;
+}
+
+.btn-delete:hover {
+  background: rgba(220, 53, 69, 0.25);
+  transform: translateY(-1px);
+}
+
+/* TABLEAU - TABLETTE & DESKTOP */
+@media (min-width: 768px) {
+  .liste {
+    font-size: 15px;
+  }
+
+  .liste th,
+  .liste td {
+    padding: 14px 16px;
+  }
+
+  .btn-edit,
+  .btn-delete {
+    padding: 7px 12px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 820px) {
+  .liste {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+[data-theme="dark"] .liste {
+  background: #1f2538;
+  border: 1px solid #3a4362;
+  box-shadow: 0 10px 24px rgba(8, 10, 20, 0.42);
+}
+
+[data-theme="dark"] .liste thead {
+  background: rgba(98, 60, 222, 0.22);
+}
+
+[data-theme="dark"] .liste th {
+  color: #d8dff9;
+}
+
+[data-theme="dark"] .liste tbody tr {
+  border-bottom: 1px solid #343d59;
+}
+
+[data-theme="dark"] .liste tbody tr:hover {
+  background: #2a3249;
+}
+
+[data-theme="dark"] .liste td {
+  color: #e9edff;
+}
+
+[data-theme="dark"] .btn-edit {
+  background: rgba(98, 60, 222, 0.25);
+  color: #e6dcff;
+}
+
+[data-theme="dark"] .btn-edit:hover {
+  background: rgba(98, 60, 222, 0.38);
+}
+
+[data-theme="dark"] .btn-delete {
+  background: rgba(220, 53, 69, 0.24);
+  color: #ffd0d5;
+}
+
+[data-theme="dark"] .btn-delete:hover {
+  background: rgba(220, 53, 69, 0.36);
+}

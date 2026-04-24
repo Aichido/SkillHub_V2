@@ -1,0 +1,103 @@
+services:
+  # ---------------------------------
+  # FRONTEND (React / Vue / Node.js)
+  # ---------------------------------
+  frontend:
+    image: node:20-alpine
+    container_name: skillhub_frontend
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev -- --host"
+    networks:
+      - skillhub_network
+
+  # ---------------------------------
+  # MICROSERVICE 1 : AUTH
+  # ---------------------------------
+  auth_api:
+    build:
+      context: ./services/auth
+      dockerfile: Dockerfile
+    container_name: skillhub_auth
+    working_dir: /var/www
+    volumes:
+      - ./services/auth:/var/www
+    ports:
+      - "8001:8000"
+    command: php artisan serve --host=0.0.0.0 --port=8000
+    depends_on:
+      - db
+    networks:
+      - skillhub_network
+
+  # ---------------------------------
+  # MICROSERVICE 2 : CATALOG
+  # ---------------------------------
+  catalog_api:
+    build:
+      context: ./services/catalog
+      dockerfile: Dockerfile
+    container_name: skillhub_catalog
+    working_dir: /var/www
+    volumes:
+      - ./services/catalog:/var/www
+    ports:
+      - "8002:8000"
+    command: php artisan serve --host=0.0.0.0 --port=8000
+    depends_on:
+      - db
+    networks:
+      - skillhub_network
+
+  # ---------------------------------
+  # MICROSERVICE 3 : INSCRIPTION
+  # ---------------------------------
+  inscription_api:
+    build:
+      context: ./services/inscription
+      dockerfile: Dockerfile
+    container_name: skillhub_inscription
+    working_dir: /var/www
+    volumes:
+      - ./services/inscription:/var/www
+    ports:
+      - "8003:8000"
+    command: php artisan serve --host=0.0.0.0 --port=8000
+    depends_on:
+      - db
+    networks:
+      - skillhub_network
+
+  # ---------------------------------
+  # BASE DE DONNÉES (MySQL)
+  # ---------------------------------
+  db:
+    image: mysql:8.0
+    container_name: skillhub_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: skillhub_user
+      MYSQL_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      # Sauvegarde persistante des données
+      - db_data:/var/lib/mysql
+      # Script pour créer les 3 bases de données automatiquement
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+    networks:
+      - skillhub_network
+
+# ---------------------------------
+# RÉSEAUX ET VOLUMES
+# ---------------------------------
+networks:
+  skillhub_network:
+    driver: bridge
+
+volumes:
+  db_data:

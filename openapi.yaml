@@ -1,0 +1,543 @@
+openapi: 3.0.3
+info:
+  title: API Dashboard Formations
+  version: 1.1.0
+  description: |
+    API REST Laravel avec authentification JWT pour la gestion des formations.
+
+    Règles principales:
+    - `POST /formations` protégé JWT et réservé aux formateurs.
+    - `user_id` n'est jamais envoyé par le frontend, il est injecté côté backend depuis l'utilisateur authentifié.
+    - `GET /my-formations` retourne uniquement les formations du formateur connecté.
+servers:
+  - url: http://127.0.0.1:8000/api
+    description: Laravel artisan serve
+  - url: http://localhost/EC04/dash-laravel/public/api
+    description: XAMPP
+
+tags:
+  - name: Auth
+    description: Authentification et session
+  - name: Formations
+    description: Gestion CRUD des formations
+
+paths:
+  /inscription:
+    post:
+      tags: [Auth]
+      summary: Inscrire un utilisateur
+      description: Crée un compte utilisateur et retourne un token JWT.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InscriptionRequest'
+            examples:
+              exemple:
+                value:
+                  nom: "Sana Formateur"
+                  email: "sana@skillhub.local"
+                  mot_de_passe: "motdepasse123"
+                  role: "formateur"
+      responses:
+        '201':
+          description: Inscription réussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '422':
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /connexion:
+    post:
+      tags: [Auth]
+      summary: Connecter un utilisateur
+      description: Vérifie les identifiants et retourne un token JWT.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnexionRequest'
+            examples:
+              exemple:
+                value:
+                  email: "sana@skillhub.local"
+                  mot_de_passe: "motdepasse123"
+      responses:
+        '200':
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '401':
+          description: Identifiants invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: "Identifiants invalides."
+        '422':
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /profil:
+    get:
+      tags: [Auth]
+      summary: Récupérer le profil connecté
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profil utilisateur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Utilisateur'
+        '401':
+          description: Jeton manquant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: "Jeton manquant."
+        '403':
+          description: Jeton invalide ou expiré
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: "Jeton invalide ou expiré."
+
+  /deconnexion:
+    post:
+      tags: [Auth]
+      summary: Déconnecter un utilisateur
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Déconnexion effectuée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: "Déconnexion effectuée."
+        '401':
+          description: Jeton manquant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '403':
+          description: Jeton invalide ou expiré
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+  /my-formations:
+    get:
+      tags: [Formations]
+      summary: Récupérer les formations du formateur connecté
+      description: Retourne uniquement les formations de l'utilisateur connecté si son rôle est `formateur`.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Liste des formations du formateur connecté
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Formation'
+        '401':
+          description: Jeton manquant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '403':
+          description: Jeton invalide ou rôle non autorisé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                jetonInvalide:
+                  value:
+                    message: "Jeton invalide ou expiré."
+                roleInterdit:
+                  value:
+                    message: "Seuls les formateurs peuvent accéder à leurs formations."
+
+  /formations:
+    get:
+      tags: [Formations]
+      summary: Lister les formations
+      description: |
+        - `formateur` : retourne ses propres formations.
+        - `apprenant` : retourne toutes les formations.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Liste des formations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Formation'
+        '401':
+          description: Jeton manquant
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '403':
+          description: Jeton invalide ou expiré
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+    post:
+      tags: [Formations]
+      summary: Créer une formation
+      description: |
+        Endpoint sécurisé.
+        - `401` si token absent
+        - `403` si token invalide ou utilisateur non formateur
+        - `422` si validation échoue
+        - `201` si création réussie
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FormationCreateRequest'
+            examples:
+              exemple:
+                value:
+                  titre: "Laravel API Pro"
+                  description: "Créer une API robuste avec authentification JWT."
+                  date: "2026-09-10"
+                  statut: "À venir"
+                  price: 299.00
+                  duration: 16
+                  level: "intermediaire"
+      responses:
+        '201':
+          description: Formation créée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Formation'
+        '401':
+          description: Token absent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: "Jeton manquant."
+        '403':
+          description: Token invalide ou rôle non autorisé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              examples:
+                tokenInvalide:
+                  value:
+                    message: "Jeton invalide ou expiré."
+                roleInterdit:
+                  value:
+                    message: "Seuls les formateurs peuvent créer une formation."
+        '422':
+          description: Erreur de validation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /formations/{id}:
+    put:
+      tags: [Formations]
+      summary: Modifier une formation
+      description: Modifie une formation appartenant au formateur connecté.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          example: 12
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FormationUpdateRequest'
+            examples:
+              exemple:
+                value:
+                  titre: "Laravel API Pro - Mise à jour"
+                  description: "Contenu enrichi et exercices supplémentaires."
+                  date: "2026-09-20"
+                  statut: "À venir"
+                  price: 320
+                  duration: 18
+                  level: "advanced"
+      responses:
+        '200':
+          description: Formation modifiée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Formation'
+        '401':
+          description: Token absent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '403':
+          description: Token invalide, rôle interdit ou ressource non autorisée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '422':
+          description: Erreur de validation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+    delete:
+      tags: [Formations]
+      summary: Supprimer une formation
+      description: Supprime une formation appartenant au formateur connecté.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          example: 12
+      responses:
+        '200':
+          description: Formation supprimée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: "Formation supprimée avec succès."
+        '401':
+          description: Token absent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '403':
+          description: Token invalide, rôle interdit ou ressource non autorisée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Utilisateur:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 7
+        nom:
+          type: string
+          example: "Sana Formateur"
+        email:
+          type: string
+          format: email
+          example: "sana@skillhub.local"
+        role:
+          type: string
+          enum: [formateur, apprenant]
+          example: formateur
+
+    AuthSuccessResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+        token_type:
+          type: string
+          example: "Bearer"
+        expires_at:
+          type: integer
+          example: 1772449800
+        utilisateur:
+          $ref: '#/components/schemas/Utilisateur'
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "The given data was invalid."
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    InscriptionRequest:
+      type: object
+      required: [nom, email, mot_de_passe, role]
+      properties:
+        nom:
+          type: string
+        email:
+          type: string
+          format: email
+        mot_de_passe:
+          type: string
+          minLength: 8
+        role:
+          type: string
+          enum: [formateur, apprenant]
+
+    ConnexionRequest:
+      type: object
+      required: [email, mot_de_passe]
+      properties:
+        email:
+          type: string
+          format: email
+        mot_de_passe:
+          type: string
+
+    Formation:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 12
+        titre:
+          type: string
+          example: "Laravel API Pro"
+        description:
+          type: string
+          example: "Créer une API robuste avec authentification JWT."
+        date:
+          type: string
+          format: date
+          example: "2026-09-10"
+        statut:
+          type: string
+          example: "À venir"
+        price:
+          type: number
+          format: double
+          example: 299
+        duration:
+          type: integer
+          example: 16
+        level:
+          type: string
+          enum: [beginner, intermediaire, advanced]
+          example: intermediaire
+        vues:
+          type: integer
+          example: 22
+        user_id:
+          type: integer
+          example: 7
+
+    FormationCreateRequest:
+      type: object
+      required: [titre, description, date, price, duration, level]
+      properties:
+        titre:
+          type: string
+        description:
+          type: string
+        date:
+          type: string
+          format: date
+        statut:
+          type: string
+          default: "À venir"
+        price:
+          type: number
+          format: double
+          minimum: 0
+        duration:
+          type: integer
+          minimum: 1
+        level:
+          type: string
+          enum: [beginner, intermediaire, advanced]
+
+    FormationUpdateRequest:
+      type: object
+      required: [titre, description, date]
+      properties:
+        titre:
+          type: string
+        description:
+          type: string
+        date:
+          type: string
+          format: date
+        statut:
+          type: string
+        price:
+          type: number
+          format: double
+          minimum: 0
+        duration:
+          type: integer
+          minimum: 1
+        level:
+          type: string
+          enum: [beginner, intermediaire, advanced]

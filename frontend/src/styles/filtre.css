@@ -1,0 +1,41 @@
+/* FILTRE*/
+.filter_select {
+  width: 190px;
+  height: 44px;
+  padding: 8px 14px;
+  border: 1px solid #cfd5ea;
+  border-radius: 10px;
+  font-size: 15px;
+  background: #fff;
+  color: #2f344b;
+  cursor: pointer;
+  outline: none;
+  box-sizing: border-box;
+  appearance: none;
+}
+
+.filter_select:hover {
+  border-color: #a8b0cf;
+}
+
+.filter_select:focus {
+  border-color: #623cde;
+  box-shadow: 0 0 0 3px rgba(98, 60, 222, 0.15);
+}
+
+/* MOBILE */
+@media (max-width: 400px) {
+  .filter_select {
+    width: 100%;
+  }
+}
+
+[data-theme="dark"] .filter_select {
+  border-color: #495374;
+  background: #2a3249;
+  color: #eef1ff;
+}
+
+[data-theme="dark"] .filter_select:hover {
+  border-color: #60719b;
+}

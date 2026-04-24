@@ -1,0 +1,100 @@
+name: CI/CD Pipeline - SkillHub BC03
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  # ==========================================
+  # Job 1: Tests automatisés (Le pré-requis absolu)
+  # ==========================================
+  tests-unitaires:
+    name: Exécution des tests (Laravel)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v3
+
+      - name: Configuration de PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_mysql, bcmath, gd
+
+      - name: Tests du Service Auth
+        working-directory: ./services/auth
+        run: |
+          composer install --prefer-dist --no-progress
+          php -r "file_exists('.env') || copy('.env.example', '.env');"
+          php artisan key:generate
+          touch database/database.sqlite
+          DB_CONNECTION=sqlite DB_DATABASE=database/database.sqlite php artisan test
+
+  # ==========================================
+  # Job 2: Analyse de code gérée par le Tech Lead (Mirana)
+  # ==========================================
+  sonar-scan:
+    name: Scan de vulnérabilités (SonarQube)
+    runs-on: ubuntu-latest
+    needs: tests-unitaires # <-- NOUVEAU: Attend que les tests soient au vert !
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 
+
+      - name: Scan SonarCloud
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  # ==========================================
+  # Job 3: Build des images Docker géré par le DevOps (Liwell)
+  # ==========================================
+  docker-build:
+    name: Build des images Docker
+    runs-on: ubuntu-latest
+    needs: sonar-scan # <-- Attend que Sonar valide la qualité du code !
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v3
+
+      - name: Configuration de Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # --- BUILD DU FRONTEND ---
+      - name: Build image Frontend
+        uses: docker/build-push-action@v4
+        with:
+          context: ./frontend
+          push: false
+          tags: skillhub-frontend:latest
+
+      # --- BUILD DES SERVICES ---
+      - name: Build image Service Auth
+        uses: docker/build-push-action@v4
+        with:
+          context: ./services/auth
+          push: false
+          tags: skillhub-auth:latest
+
+      - name: Build image Service Catalog
+        uses: docker/build-push-action@v4
+        with:
+          context: ./services/catalog
+          push: false
+          tags: skillhub-catalog:latest
+
+      - name: Build image Service Inscription
+        uses: docker/build-push-action@v4
+        with:
+          context: ./services/inscription
+          push: false
+          tags: skillhub-inscription:latest
